@@ -1,0 +1,44 @@
+# Gradle files
+.gradle/
+build/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ IDEA / Android Studio
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# Eclipse
+*.classpath
+*.project
+*.settings/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Minecraft dependencies & logs
+run/
+logs/
+crash-reports/
+
+# User-specific files
+*.log
+*.lock
+*.tmp
+*.bat
+*.swp
+
+# Minecraft compiled JARs
+*.jar
+*.json
+
+# Fabric API cache
+.cache/
+
+# Temporary files
+*.orig
+*.rej
