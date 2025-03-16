@@ -1,6 +1,9 @@
 package com.whosalbercik.tileman.server;
+import com.whosalbercik.tileman.networking.ClearSelectedTilesC2S;
 import com.whosalbercik.tileman.networking.SendFriendsS2C;
+import com.whosalbercik.tileman.networking.SendSelectedTileC2S;
 import com.whosalbercik.tileman.networking.SendSidePanelDataS2C;
+import com.whosalbercik.tileman.tile.OwnedTile;
 import com.whosalbercik.tileman.tile.PlayerTileData;
 import com.whosalbercik.tileman.tile.TileHandler;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -8,6 +11,7 @@ import net.minecraft.nbt.*;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.PersistentState;
@@ -84,6 +88,14 @@ public class PlayerDataHandler extends PersistentState {
 
         return serverState.playerData.computeIfAbsent(player.getUuid(), uuid -> new PlayerTileData(0, new ArrayList<>(), player.getBlockPos().asLong(), player.getWorld().getRegistryKey())).availableTiles;
     }
+
+    public static ArrayList<OwnedTile> getPlayerSelectedTiles(ServerPlayerEntity player) {
+        PlayerDataHandler serverState = getServerState(player.getWorld().getServer());
+
+
+        return serverState.playerData.computeIfAbsent(player.getUuid(), uuid -> new PlayerTileData(0, new ArrayList<>(), player.getBlockPos().asLong(), player.getWorld().getRegistryKey())).selectedTiles;
+    }
+
 
     public static ArrayList<UUID> getPlayerFriends(ServerPlayerEntity player) {
         PlayerDataHandler serverState = getServerState(player.getWorld().getServer());
@@ -202,7 +214,7 @@ public class PlayerDataHandler extends PersistentState {
         PlayerDataHandler serverState = getServerState(player.getWorld().getServer());
 
         PlayerTileData pData = serverState.playerData.computeIfAbsent(player.getUuid(), (uuid) -> new PlayerTileData(0, new ArrayList<>(), player.getBlockPos().asLong(), player.getWorld().getRegistryKey()));
-        pData.lastSafeTile = player.getBlockPos().asLong();
+        pData.lastSafeTile = player.getVehicle() == null ? player.getBlockPos().asLong() : player.getBlockPos().up().asLong();
         pData.lastSafeDimension = player.getWorld().getRegistryKey();
 
         serverState.playerData.put(player.getUuid(), pData);
@@ -215,5 +227,34 @@ public class PlayerDataHandler extends PersistentState {
         PlayerTileData pData = serverState.playerData.computeIfAbsent(player.getUuid(), (uuid) -> new PlayerTileData(0, new ArrayList<>(), player.getBlockPos().asLong(), player.getWorld().getRegistryKey()));
         return new GlobalPos(pData.lastSafeDimension, BlockPos.fromLong(pData.lastSafeTile));
 
+    }
+
+    public static void addSelectedTile(SendSelectedTileC2S packet, ServerPlayNetworking.Context ctx) {
+        PlayerDataHandler serverState = getServerState(ctx.player().getWorld().getServer());
+
+        PlayerTileData pData = serverState.playerData.computeIfAbsent(ctx.player().getUuid(), (uuid) -> new PlayerTileData(0, new ArrayList<>(), ctx.player().getBlockPos().asLong(), ctx.player().getWorld().getRegistryKey()));
+
+        if (pData.selectedTiles.contains(packet.tile())) return;
+
+        pData.selectedTiles.add(packet.tile());
+        serverState.markDirty();
+
+    }
+
+    public static void clearSelectedTiles(ClearSelectedTilesC2S packet, ServerPlayNetworking.Context ctx) {
+        PlayerDataHandler serverState = getServerState(ctx.player().getWorld().getServer());
+
+        PlayerTileData pData = serverState.playerData.computeIfAbsent(ctx.player().getUuid(), (uuid) -> new PlayerTileData(0, new ArrayList<>(), ctx.player().getBlockPos().asLong(), ctx.player().getWorld().getRegistryKey()));
+
+        pData.selectedTiles.clear();
+        serverState.markDirty();
+    }
+
+    public static ArrayList<OwnedTile> getSelectedTiles(ServerPlayerEntity p) {
+        PlayerDataHandler serverState = getServerState(p.getWorld().getServer());
+
+        PlayerTileData pData = serverState.playerData.computeIfAbsent(p.getUuid(), (uuid) -> new PlayerTileData(0, new ArrayList<>(), p.getBlockPos().asLong(), p.getWorld().getRegistryKey()));
+
+        return pData.selectedTiles;
     }
 }

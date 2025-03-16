@@ -5,15 +5,16 @@ import com.whosalbercik.tileman.tile.OwnedTile;
 import com.whosalbercik.tileman.tile.Tile;
 import com.whosalbercik.tileman.tile.TileHandler;
 import net.minecraft.block.Blocks;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.RaycastContext;
 import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
 
 
 public class MovementHandler {
@@ -56,15 +57,23 @@ public class MovementHandler {
     private static void pushToSafeTile(ServerPlayerEntity p) {
         BlockPos standing = p.getBlockPos();
         GlobalPos safeTile = PlayerDataHandler.getLastSafeTile(p);
-        if (TileHandler.getOwnedOrFriendedTiles(p).contains(TileHandler.getTile(p.server ,safeTile.pos().getX(), safeTile.pos().getZ(), p.getWorld().getRegistryKey()))) {
-            Vec3d offset = new Vec3d(safeTile.pos().getX() - standing.getX() , 0, safeTile.pos().getZ() - standing.getZ());
+
+        BlockHitResult result = p.getWorld().raycast(new RaycastContext(p.getVehicle() == null ? p.getBlockPos().toCenterPos() : p.getBlockPos().up().toCenterPos(), safeTile.pos().toCenterPos(), RaycastContext.ShapeType.VISUAL, RaycastContext.FluidHandling.NONE, p.getVehicle() == null ? p : p.getVehicle()));
+
+
+        if (result.getType().equals(HitResult.Type.MISS) && p.getWorld().getRegistryKey().equals(safeTile.dimension()) && TileHandler.getOwnedOrFriendedTiles(p).contains(TileHandler.getTile(p.server, safeTile.pos().getX(), safeTile.pos().getZ(), safeTile.dimension()))) {
+            Vec3d offset = new Vec3d(safeTile.pos().getX() - standing.getX(), p.getVehicle() == null ? safeTile.pos().getY() - standing.getY() : safeTile.pos().getY() - standing.getY() - 1, safeTile.pos().getZ() - standing.getZ());
+
+            if (p.getVehicle() != null) {
+                p.getVehicle().setVelocity(offset.multiply(0.1));
+                p.getVehicle().velocityModified = true;
+                return;
+            }
             p.setVelocity(offset.multiply(0.1));
             p.velocityModified = true;
-            return;
         } else {
             GlobalPos pos = PlayerDataHandler.getLastSafeTile(p);
-            p.teleportTo(new TeleportTarget(p.getServer().getWorld(pos.dimension()), new Vec3d(pos.pos()), Vec3d.ZERO, 1f, 1f, entity -> {}));
-            ModLogger.sendWarning(p, "You nearly got stuck without a way to leave the portal but we saved you");
+            p.teleportTo(new TeleportTarget(p.getServer().getWorld(pos.dimension()), new Vec3d(pos.pos().up()), Vec3d.ZERO, p.getYaw(), p.getPitch(), entity -> {}));
         }
     }
 

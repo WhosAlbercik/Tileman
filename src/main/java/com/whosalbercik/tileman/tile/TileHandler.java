@@ -173,20 +173,6 @@ public class TileHandler extends PersistentState {
         return nbt;
     }
 
-    // TODO: Change this to be entirely server-side
-    public static void transferOwnership(TransferOwnershipC2S packet, ServerPlayNetworking.Context ctx) {
-        OwnedTile owned = (OwnedTile) getTile(ctx.server(), packet.tile().getX(), packet.tile().getZ(), packet.tile().getDimension());
-        ServerPlayerEntity newOwner = ctx.server().getPlayerManager().getPlayer(packet.newOwnerName());
-
-        if (newOwner == null) {
-            ModLogger.sendError(ctx.player(), "Specified player could not be found!");
-            return;
-        }
-
-        owned.transferOwnership(newOwner.getUuid());
-
-        sendTile(ctx.server(), owned);
-    }
 
     public static ArrayList<OwnedTile> getTilesInNether(MinecraftServer server) {
         TileHandler handler = getServerState(server);

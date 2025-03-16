@@ -1,8 +1,11 @@
 package com.whosalbercik.tileman.client;
 
 import com.whosalbercik.tileman.client.renderer.BorderRenderer;
+import com.whosalbercik.tileman.networking.ClearSelectedTilesC2S;
+import com.whosalbercik.tileman.networking.SendSelectedTileC2S;
 import com.whosalbercik.tileman.tile.OwnedTile;
 import com.whosalbercik.tileman.tile.Tile;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.util.math.MatrixStack;
@@ -41,14 +44,23 @@ public class AreaHandler {
 
         if (block1 == null && block2 == null) {
             block1 = hit;
-            selectedArea = block1.getOwner().equals(p.getUuid()) ? new ArrayList<>(List.of(new OwnedTile[]{block1})) : new ArrayList<>();
+            if (block1.getOwner().equals(p.getUuid())) {
+                ClientPlayNetworking.send(new SendSelectedTileC2S(block1));
+                selectedArea.add(block1);
+            }
+
         } else if (block1 != null && block2 == null) {
             block2 = hit;
-            selectedArea = getOwnedTilesInArea(block1, block2);
+            getOwnedTilesInArea(block1, block2).forEach((tile -> {
+                ClientPlayNetworking.send(new SendSelectedTileC2S(tile));
+                selectedArea.add(tile);
+            }));
+
         } else if (block1 != null && block2 != null) {
             block2 = null;
             block1 = null;
             selectedArea.clear();
+            ClientPlayNetworking.send(new ClearSelectedTilesC2S());
         }
     }
 

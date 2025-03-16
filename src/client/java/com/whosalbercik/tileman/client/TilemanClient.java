@@ -2,7 +2,6 @@ package com.whosalbercik.tileman.client;
 
 
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.whosalbercik.tileman.client.commands.TilesCommand;
 import com.whosalbercik.tileman.client.renderer.BorderRenderer;
 import com.whosalbercik.tileman.client.renderer.SidePanelRenderer;
 import com.whosalbercik.tileman.networking.*;
@@ -15,12 +14,9 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.StickyKeyBinding;
 import net.minecraft.client.util.InputUtil;
-import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.command.argument.GameProfileArgumentType;
 import org.lwjgl.glfw.GLFW;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
@@ -61,15 +57,6 @@ public class TilemanClient implements ClientModInitializer {
                 AreaHandler.areaSelected();
             }
         });
-
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            dispatcher.register(literal("selectedTiles")
-                            .then(literal("transferOwnership")
-                                    .then(argument("player", StringArgumentType.word())
-                                            .executes(TilesCommand::transfer))));
-        });
-
-
 
     }
 

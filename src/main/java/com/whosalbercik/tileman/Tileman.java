@@ -35,6 +35,10 @@ public class Tileman implements ModInitializer {
     public static final Identifier sendSidePanel = Identifier.of("tileman", "send_side_panel");
     public static final Identifier sendFriends = Identifier.of("tileman", "send_friends");
     public static final Identifier transferOwnership = Identifier.of("tileman", "transfer_ownership");
+    public static final Identifier sendSelectedTile = Identifier.of("tileman", "send_selected_tile");
+    public static final Identifier clearSelectedTiles = Identifier.of("tileman", "clear_selected_tiles");
+
+
 
 
 
@@ -45,31 +49,41 @@ public class Tileman implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(SendSidePanelDataS2C.ID, SendSidePanelDataS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(SendFriendsS2C.ID, SendFriendsS2C.CODEC);
 
-        PayloadTypeRegistry.playC2S().register(TransferOwnershipC2S.ID, TransferOwnershipC2S.CODEC);
-        ServerPlayNetworking.registerGlobalReceiver(TransferOwnershipC2S.ID, TileHandler::transferOwnership);
+        PayloadTypeRegistry.playC2S().register(SendSelectedTileC2S.ID, SendSelectedTileC2S.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(SendSelectedTileC2S.ID, PlayerDataHandler::addSelectedTile);
+
+        PayloadTypeRegistry.playC2S().register(ClearSelectedTilesC2S.ID, ClearSelectedTilesC2S.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ClearSelectedTilesC2S.ID, PlayerDataHandler::clearSelectedTiles);
 
         CommandRegistrationCallback.EVENT.register(
                 (dispatcher, registryAccess, environment) -> {
 
                     dispatcher.register(literal("tileman")
-                            .then(literal("friends")
-                                    .executes(FriendCommand::listFriends)
-                                    .then(literal("invite")
+                                    .executes((source) -> {
+                                        ModLogger.sendInfo(source.getSource().getPlayerOrThrow(), "/tileman friends invite/accept/remove\n/tileman tiles transfer <player> <amount>\n/tileman selectedTiles transferOwnership <player>");
+                                        return 0;
+                                    })
+                                    .then(literal("transferOwnership")
                                             .then(argument("player", GameProfileArgumentType.gameProfile())
-                                                .executes(FriendCommand::invite)))
-                                    .then(literal("accept")
-                                            .executes(FriendCommand::accept))
-                                    .then(literal("remove")
-                                            .then(argument("player", EntityArgumentType.player())
-                                                    .executes(FriendCommand::remove))))
-                            .then(literal("tiles")
-                                    .then(literal("transfer")
-                                        .then(argument("player", GameProfileArgumentType.gameProfile())
-                                            .then(argument("amountOfTiles", IntegerArgumentType.integer(1))
-                                                .executes(TilesCommand::transfer)))))
-                            .then(literal("help")
-                                    .executes((source) ->
-                                    {ModLogger.sendInfo(source.getSource().getPlayerOrThrow(), "/tileman friends invite/accept/remove\n/tileman tiles transfer <player> <amount>\n/tileman selectedTiles transferOwnership <player>"); return 0;})));
+                                                    .executes(TilesCommand::transferOwnership)))
+
+                                    .then(literal("friends")
+                                        .executes(FriendCommand::listFriends)
+                                        .then(literal("invite")
+                                                .then(argument("player", GameProfileArgumentType.gameProfile())
+                                                    .executes(FriendCommand::invite)))
+                                        .then(literal("accept")
+                                                .executes(FriendCommand::accept))
+                                        .then(literal("remove")
+                                                .then(argument("player", EntityArgumentType.player())
+                                                        .executes(FriendCommand::remove))))
+
+                                    .then(literal("tiles")
+                                        .then(literal("transfer")
+                                            .then(argument("player", GameProfileArgumentType.gameProfile())
+                                                .then(argument("amountOfTiles", IntegerArgumentType.integer(1))
+                                                    .executes(TilesCommand::transfer)))))
+                            );
                 });
 
 

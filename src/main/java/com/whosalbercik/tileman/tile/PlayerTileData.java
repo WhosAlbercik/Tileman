@@ -11,6 +11,7 @@ public class PlayerTileData {
     public ArrayList<UUID> friends;
     public Long lastSafeTile; // do not save this to persistantState as its not necessary
     public RegistryKey<World> lastSafeDimension; // do not save this to persistantState as its not necessary
+    public ArrayList<OwnedTile> selectedTiles; // do not save this to persistantState as its not necessary
 
 
     public PlayerTileData(int availableTiles, ArrayList<UUID> friends, Long lastSafeTile, RegistryKey<World> lastSafeDimension) {
@@ -18,5 +19,14 @@ public class PlayerTileData {
         this.friends = friends;
         this.lastSafeTile = lastSafeTile;
         this.lastSafeDimension = lastSafeDimension;
+        this.selectedTiles = new ArrayList<>();
+    }
+
+    public PlayerTileData(int availableTiles, ArrayList<UUID> friends, Long lastSafeTile, RegistryKey<World> lastSafeDimension, ArrayList<OwnedTile> selectedTiles) {
+        this.availableTiles = availableTiles;
+        this.friends = friends;
+        this.lastSafeTile = lastSafeTile;
+        this.lastSafeDimension = lastSafeDimension;
+        this.selectedTiles = selectedTiles;
     }
 }
