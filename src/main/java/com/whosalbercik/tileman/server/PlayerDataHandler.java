@@ -1,8 +1,6 @@
 package com.whosalbercik.tileman.server;
-import com.whosalbercik.tileman.networking.ClearSelectedTilesC2S;
-import com.whosalbercik.tileman.networking.SendFriendsS2C;
-import com.whosalbercik.tileman.networking.SendSelectedTileC2S;
-import com.whosalbercik.tileman.networking.SendSidePanelDataS2C;
+import com.whosalbercik.tileman.ModLogger;
+import com.whosalbercik.tileman.networking.*;
 import com.whosalbercik.tileman.tile.OwnedTile;
 import com.whosalbercik.tileman.tile.PlayerTileData;
 import com.whosalbercik.tileman.tile.TileHandler;
@@ -11,7 +9,7 @@ import net.minecraft.nbt.*;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.PersistentState;
@@ -256,5 +254,28 @@ public class PlayerDataHandler extends PersistentState {
         PlayerTileData pData = serverState.playerData.computeIfAbsent(p.getUuid(), (uuid) -> new PlayerTileData(0, new ArrayList<>(), p.getBlockPos().asLong(), p.getWorld().getRegistryKey()));
 
         return pData.selectedTiles;
+    }
+
+    public static boolean isAutoClaimEnabled(ServerPlayerEntity player) {
+        PlayerDataHandler serverState = getServerState(player.getWorld().getServer());
+
+        PlayerTileData pData = serverState.playerData.computeIfAbsent(player.getUuid(), (uuid) -> new PlayerTileData(0, new ArrayList<>(), player.getBlockPos().asLong(), player.getWorld().getRegistryKey()));
+
+        return pData.autoClaimEnabled;
+    }
+
+    public static void setAutoClaim(SetTileAutoClaimC2S packet, ServerPlayNetworking.Context ctx) {
+        PlayerDataHandler serverState = getServerState(ctx.player().getWorld().getServer());
+
+        PlayerTileData pData = serverState.playerData.computeIfAbsent(ctx.player().getUuid(), (uuid) -> new PlayerTileData(0, new ArrayList<>(), ctx.player().getBlockPos().asLong(), ctx.player().getWorld().getRegistryKey()));
+
+
+        pData.autoClaimEnabled = packet.autoClaimEnabled();
+
+        serverState.playerData.put(ctx.player().getUuid(), pData);
+        Formatting color = pData.autoClaimEnabled ? Formatting.GREEN : Formatting.RED;
+        String enabledText = pData.autoClaimEnabled ? "enabled" : "disabled";
+
+        ModLogger.sendError(ctx.player(), String.format("Tile auto claim %s%s", color, enabledText));
     }
 }

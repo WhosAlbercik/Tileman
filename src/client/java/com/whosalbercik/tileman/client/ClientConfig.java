@@ -16,6 +16,8 @@ public class ClientConfig {
     private static Color friendlyBorder = new Color(255, 0, 0);
     private static Color enemyBorder = new Color(0, 0, 255);
 
+    private static boolean autoClaimEnabled = true;
+
 
     static {
         loadConfig();
@@ -89,5 +91,13 @@ public class ClientConfig {
     public static void setEnemyBorder(Color enemyBorder) {
         ClientConfig.enemyBorder = enemyBorder;
         saveConfig();
+    }
+
+    public static void toggleAutoClaim() {
+        autoClaimEnabled = !autoClaimEnabled;
+    }
+
+    public static boolean getAutoClaimEnabled() {
+        return autoClaimEnabled;
     }
 }

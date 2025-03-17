@@ -40,11 +40,10 @@ public class MovementHandler {
         }
 
         // if player has tiles, has available tiles and not standing on one of them
-        if (availableTiles > 0 && !(standing instanceof OwnedTile)) {
+        if (availableTiles > 0 && !(standing instanceof OwnedTile) && PlayerDataHandler.isAutoClaimEnabled(p)) {
             PlayerDataHandler.removePlayerAvailableTiles(p, 1);
             TileHandler.unlockTile(p, p.getBlockX(), p.getBlockZ(), p.getWorld().getRegistryKey());
             p.getWorld().playSound(null, p.getBlockPos(), SoundEvents.BLOCK_NOTE_BLOCK_BELL.value(), SoundCategory.PLAYERS, 1f, 1f);
-                return;
         }
 
         if (!(standing instanceof OwnedTile)) {

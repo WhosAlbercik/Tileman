@@ -1,7 +1,6 @@
 package com.whosalbercik.tileman.client;
 
 
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.whosalbercik.tileman.client.renderer.BorderRenderer;
 import com.whosalbercik.tileman.client.renderer.SidePanelRenderer;
 import com.whosalbercik.tileman.networking.*;
@@ -10,7 +9,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -18,9 +16,6 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.StickyKeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
-
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 
 
 @Environment(EnvType.CLIENT)
@@ -39,6 +34,16 @@ public class TilemanClient implements ClientModInitializer {
             "category.tileman.tileman",
             () -> true
     ));
+
+    public static KeyBinding toggleAutoClaim = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+        "key.tileman.toggleAutoClaim",
+        InputUtil.Type.KEYSYM,
+        GLFW.GLFW_KEY_U,
+        "category.tileman.tileman"
+    ));
+
+    private long lastAutoClaimToggleTime = 0;
+
     @Override
     public void onInitializeClient() {
         RenderEvents.WORLD.register(BorderRenderer::renderTiles);
@@ -56,12 +61,13 @@ public class TilemanClient implements ClientModInitializer {
             if (setArea.isPressed()) {
                 AreaHandler.areaSelected();
             }
+
+            long currentTime = System.currentTimeMillis();
+            if (toggleAutoClaim.wasPressed() && (currentTime - lastAutoClaimToggleTime) >= 300) {
+                lastAutoClaimToggleTime = currentTime;
+                ClientConfig.toggleAutoClaim();
+                ClientPlayNetworking.send(new SetTileAutoClaimC2S(ClientConfig.getAutoClaimEnabled()));
+            }
         });
-
     }
-
-
-
-
-
 }

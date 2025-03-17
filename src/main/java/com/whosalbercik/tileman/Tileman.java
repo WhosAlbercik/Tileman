@@ -37,10 +37,7 @@ public class Tileman implements ModInitializer {
     public static final Identifier transferOwnership = Identifier.of("tileman", "transfer_ownership");
     public static final Identifier sendSelectedTile = Identifier.of("tileman", "send_selected_tile");
     public static final Identifier clearSelectedTiles = Identifier.of("tileman", "clear_selected_tiles");
-
-
-
-
+    public static final Identifier setAutoClaim = Identifier.of("tileman", "set_auto_claim");
 
     @Override
     public void onInitialize() {
@@ -48,6 +45,9 @@ public class Tileman implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(ClearRenderedTilesS2C.ID, ClearRenderedTilesS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(SendSidePanelDataS2C.ID, SendSidePanelDataS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(SendFriendsS2C.ID, SendFriendsS2C.CODEC);
+
+        PayloadTypeRegistry.playC2S().register(SetTileAutoClaimC2S.ID, SetTileAutoClaimC2S.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(SetTileAutoClaimC2S.ID, PlayerDataHandler::setAutoClaim);
 
         PayloadTypeRegistry.playC2S().register(SendSelectedTileC2S.ID, SendSelectedTileC2S.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(SendSelectedTileC2S.ID, PlayerDataHandler::addSelectedTile);
