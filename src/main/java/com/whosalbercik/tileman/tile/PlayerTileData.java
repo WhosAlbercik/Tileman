@@ -12,6 +12,7 @@ public class PlayerTileData {
     public Long lastSafeTile; // do not save this to persistantState as its not necessary
     public RegistryKey<World> lastSafeDimension; // do not save this to persistantState as its not necessary
     public ArrayList<OwnedTile> selectedTiles; // do not save this to persistantState as its not necessary
+    public boolean autoClaimEnabled = true; // do not save this to persistantState as its not necessary
 
 
     public PlayerTileData(int availableTiles, ArrayList<UUID> friends, Long lastSafeTile, RegistryKey<World> lastSafeDimension) {
