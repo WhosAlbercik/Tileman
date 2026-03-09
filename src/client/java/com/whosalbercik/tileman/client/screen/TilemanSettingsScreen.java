@@ -1,6 +1,7 @@
 package com.whosalbercik.tileman.client.screen;
 
 import com.whosalbercik.tileman.client.ClientConfig;
+import com.whosalbercik.tileman.client.renderer.ClientTileHandler;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -35,6 +36,7 @@ public class TilemanSettingsScreen extends Screen {
             @Override
             protected void applyValue() {
                 ClientConfig.setBorderRenderDistance((int) (this.value * 200));
+                ClientTileHandler.setDirty();
             }
         });
 
@@ -49,6 +51,7 @@ public class TilemanSettingsScreen extends Screen {
             @Override
             protected void applyValue() {
                 ClientConfig.setFriendlyBorder(new Color((int) (this.value * 255), ClientConfig.getFriendlyBorder().getGreen(), ClientConfig.getFriendlyBorder().getBlue()));
+                ClientTileHandler.setDirty();
             }
         });
 
@@ -61,6 +64,7 @@ public class TilemanSettingsScreen extends Screen {
             @Override
             protected void applyValue() {
                 ClientConfig.setFriendlyBorder(new Color(ClientConfig.getFriendlyBorder().getRed(), (int) (this.value * 255), ClientConfig.getFriendlyBorder().getBlue()));
+                ClientTileHandler.setDirty();
             }
         });
 
@@ -73,6 +77,7 @@ public class TilemanSettingsScreen extends Screen {
             @Override
             protected void applyValue() {
                 ClientConfig.setFriendlyBorder(new Color(ClientConfig.getFriendlyBorder().getRed(), ClientConfig.getFriendlyBorder().getGreen(), (int) (this.value * 255)));
+                ClientTileHandler.setDirty();
             }
         });
 
@@ -87,6 +92,7 @@ public class TilemanSettingsScreen extends Screen {
             @Override
             protected void applyValue() {
                 ClientConfig.setEnemyBorder(new Color((int) (this.value * 255), ClientConfig.getEnemyBorder().getGreen(), ClientConfig.getEnemyBorder().getBlue()));
+                ClientTileHandler.setDirty();
             }
         });
 
@@ -99,6 +105,7 @@ public class TilemanSettingsScreen extends Screen {
             @Override
             protected void applyValue() {
                 ClientConfig.setEnemyBorder(new Color(ClientConfig.getEnemyBorder().getRed(), (int) (this.value * 255), ClientConfig.getEnemyBorder().getBlue()));
+                ClientTileHandler.setDirty();
             }
         });
 
@@ -111,6 +118,7 @@ public class TilemanSettingsScreen extends Screen {
             @Override
             protected void applyValue() {
                 ClientConfig.setEnemyBorder(new Color(ClientConfig.getEnemyBorder().getRed(), ClientConfig.getEnemyBorder().getGreen(), (int) (this.value * 255)));
+                ClientTileHandler.setDirty();
             }
         });
 

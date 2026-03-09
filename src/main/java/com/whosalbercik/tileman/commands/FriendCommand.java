@@ -1,36 +1,25 @@
 package com.whosalbercik.tileman.commands;
 
-import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.whosalbercik.tileman.ModLogger;
-import com.whosalbercik.tileman.networking.SendFriendsS2C;
-import com.whosalbercik.tileman.networking.SendSidePanelDataS2C;
 import com.whosalbercik.tileman.server.PlayerDataHandler;
 import com.whosalbercik.tileman.server.PlayerInvites;
-import com.whosalbercik.tileman.tile.TileHandler;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.command.argument.GameProfileArgumentType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class FriendCommand {
 
     public static int invite(CommandContext<ServerCommandSource> source) throws CommandSyntaxException {
-        GameProfile invited = source.getArgument("player", GameProfileArgumentType.GameProfileArgument.class).getNames(source.getSource()).stream().toList().getFirst();
+        ServerPlayerEntity invitedPlayer = CommandUtils.getPlayerArg("player", source);
 
-        PlayerInvites.saveInvite(source.getSource().getPlayer().getUuid(), invited.getId());
+        PlayerInvites.saveInvite(source.getSource().getPlayer().getUuid(), invitedPlayer.getUuid());
         ModLogger.sendInfo(source.getSource().getPlayerOrThrow(), "You have successfully sent an invite!");
-
-        ServerPlayerEntity invitedPlayer =  source.getSource().getServer().getPlayerManager().getPlayer(invited.getId());
 
         if (invitedPlayer.getUuid().equals(source.getSource().getPlayerOrThrow().getUuid())) {
             ModLogger.sendError(source.getSource().getPlayerOrThrow(), "You cannot invite yourself!");
@@ -59,10 +48,7 @@ public class FriendCommand {
             return 0;
         }
 
-
         PlayerDataHandler.addPlayerFriends(invited, inviter);
-
-
 
         ModLogger.sendInfo(source.getSource().getPlayerOrThrow(), "Invite Accepted!");
 

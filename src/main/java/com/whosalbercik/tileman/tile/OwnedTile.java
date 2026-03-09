@@ -7,13 +7,10 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.encoding.StringEncoding;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.World;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.UUID;
 
 /**
@@ -64,6 +61,11 @@ public class OwnedTile extends Tile{
         this.owner = owner.getUuid();
     }
 
+    /*
+    Function does not include ownership through friends,
+    only direct ownership
+
+     */
     public boolean isOwner(UUID player) {
         return owner.equals(player);
     }

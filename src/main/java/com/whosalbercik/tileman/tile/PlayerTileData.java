@@ -14,6 +14,10 @@ public class PlayerTileData {
     public ArrayList<OwnedTile> selectedTiles; // do not save this to persistantState as its not necessary
     public boolean autoClaimEnabled = true; // do not save this to persistantState as its not necessary
 
+    // last time at which player unlocked tile, used for easy mode
+    // do not save this
+    public long lastTimeClaimed;
+
 
     public PlayerTileData(int availableTiles, ArrayList<UUID> friends, Long lastSafeTile, RegistryKey<World> lastSafeDimension) {
         this.availableTiles = availableTiles;
@@ -21,6 +25,7 @@ public class PlayerTileData {
         this.lastSafeTile = lastSafeTile;
         this.lastSafeDimension = lastSafeDimension;
         this.selectedTiles = new ArrayList<>();
+        this.lastTimeClaimed = System.currentTimeMillis();
     }
 
     public PlayerTileData(int availableTiles, ArrayList<UUID> friends, Long lastSafeTile, RegistryKey<World> lastSafeDimension, ArrayList<OwnedTile> selectedTiles) {

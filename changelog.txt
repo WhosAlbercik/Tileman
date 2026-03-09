@@ -1,0 +1,6 @@
+- Border Rendering rewritten and optimised
+- Changed up commands for better clarity
+- Fixed Kicking out when joining bug
+- Fixed unsmooth movement when unlocking multiple tiles in a row
+- Added EasyMode
+- General improvements for optimisation and clarity

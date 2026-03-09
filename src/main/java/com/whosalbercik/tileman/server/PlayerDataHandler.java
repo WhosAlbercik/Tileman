@@ -23,6 +23,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PlayerDataHandler extends PersistentState {
     public HashMap<UUID, PlayerTileData> playerData = new HashMap<>();
+    private static Type<PlayerDataHandler> persistentStateType = new Type<>(
+            PlayerDataHandler::new,
+            PlayerDataHandler::createFromNbt,
+            null
+    );
     @Override
     public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         NbtCompound playersNbt = new NbtCompound();
@@ -63,17 +68,10 @@ public class PlayerDataHandler extends PersistentState {
         return state;
     }
 
-
-    private static Type<PlayerDataHandler> type = new Type<>(
-            PlayerDataHandler::new,
-            PlayerDataHandler::createFromNbt,
-            null
-    );
-
     private static PlayerDataHandler getServerState(MinecraftServer server) {
         PersistentStateManager persistentStateManager = server.getWorld(World.OVERWORLD).getPersistentStateManager();
 
-        PlayerDataHandler state = persistentStateManager.getOrCreate(type, "tileman.available_tiles");
+        PlayerDataHandler state = persistentStateManager.getOrCreate(persistentStateType, "tileman.available_tiles");
 
         state.markDirty();
 
@@ -127,8 +125,8 @@ public class PlayerDataHandler extends PersistentState {
         ServerPlayNetworking.send(player1, new SendFriendsS2C(player1Friends));
         ServerPlayNetworking.send(player2, new SendFriendsS2C(player2Friends));
 
-        ServerPlayNetworking.send(player1, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player1), TileHandler.getOwnedOrFriendedTiles(player1).size()));
-        ServerPlayNetworking.send(player2, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player2), TileHandler.getOwnedOrFriendedTiles(player2).size()));
+        ServerPlayNetworking.send(player1, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player1), TileHandler.getOwnedOrFriendlyTiles(player1).size()));
+        ServerPlayNetworking.send(player2, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player2), TileHandler.getOwnedOrFriendlyTiles(player2).size()));
 
 
     }
@@ -152,8 +150,8 @@ public class PlayerDataHandler extends PersistentState {
         ServerPlayNetworking.send(player1, new SendFriendsS2C(player1Friends));
         ServerPlayNetworking.send(player2, new SendFriendsS2C(player2Friends));
 
-        ServerPlayNetworking.send(player1, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player1), TileHandler.getOwnedOrFriendedTiles(player1).size()));
-        ServerPlayNetworking.send(player2, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player2), TileHandler.getOwnedOrFriendedTiles(player2).size()));
+        ServerPlayNetworking.send(player1, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player1), TileHandler.getOwnedOrFriendlyTiles(player1).size()));
+        ServerPlayNetworking.send(player2, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player2), TileHandler.getOwnedOrFriendlyTiles(player2).size()));
 
 
     }
@@ -181,7 +179,7 @@ public class PlayerDataHandler extends PersistentState {
         return pData.friends.contains(player2);
     }
 
-    public static void addPlayerAvailableTiles(ServerPlayerEntity player, int amount) {
+    public static int addPlayerAvailableTiles(ServerPlayerEntity player, int amount) {
         PlayerDataHandler serverState = getServerState(player.getWorld().getServer());
 
         PlayerTileData pData = serverState.playerData.computeIfAbsent(player.getUuid(), (uuid) -> new PlayerTileData(0, new ArrayList<>(), player.getBlockPos().asLong(), player.getWorld().getRegistryKey()));
@@ -191,8 +189,12 @@ public class PlayerDataHandler extends PersistentState {
         serverState.playerData.put(player.getUuid(), pData);
         serverState.markDirty();
 
-        ServerPlayNetworking.send(player, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player), TileHandler.getOwnedOrFriendedTiles(player).size()));
+        ServerPlayNetworking.send(player, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player), TileHandler.getOwnedOrFriendlyTiles(player).size()));
 
+        // save last time tile was unlocked for sake of easy mode
+        PlayerDataHandler.setLastTimeGainedTile(player);
+
+        return amount;
     }
 
     public static void removePlayerAvailableTiles(ServerPlayerEntity player, int amount) {
@@ -204,7 +206,7 @@ public class PlayerDataHandler extends PersistentState {
         serverState.playerData.put(player.getUuid(), pData);
         serverState.markDirty();
 
-        ServerPlayNetworking.send(player, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player), TileHandler.getOwnedOrFriendedTiles(player).size()));
+        ServerPlayNetworking.send(player, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(player), TileHandler.getOwnedOrFriendlyTiles(player).size()));
     }
 
 
@@ -277,5 +279,24 @@ public class PlayerDataHandler extends PersistentState {
         String enabledText = pData.autoClaimEnabled ? "enabled" : "disabled";
 
         ModLogger.sendError(ctx.player(), String.format("Tile auto claim %s%s", color, enabledText));
+    }
+
+    public static void setLastTimeGainedTile(ServerPlayerEntity p) {
+        PlayerDataHandler serverState = getServerState(p.getServer());
+
+        PlayerTileData pData = serverState.playerData.computeIfAbsent(p.getUuid(), (uuid) -> new PlayerTileData(0, new ArrayList<>(), p.getBlockPos().asLong(), p.getWorld().getRegistryKey()));
+
+        // set lsat time to now
+        pData.lastTimeClaimed = System.currentTimeMillis() / 1000;
+
+        serverState.playerData.put(p.getUuid(), pData);
+    }
+
+    public static boolean shouldGetEasyModeTile(ServerPlayerEntity p) {
+        PlayerDataHandler serverState = getServerState(p.getServer());
+
+        PlayerTileData pData = serverState.playerData.computeIfAbsent(p.getUuid(), (uuid) -> new PlayerTileData(0, new ArrayList<>(), p.getBlockPos().asLong(), p.getWorld().getRegistryKey()));
+
+        return System.currentTimeMillis() / 1000 - pData.lastTimeClaimed > 1200;
     }
 }

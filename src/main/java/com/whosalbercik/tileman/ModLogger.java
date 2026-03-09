@@ -1,7 +1,6 @@
 package com.whosalbercik.tileman;
 
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.slf4j.Logger;
@@ -33,5 +32,9 @@ public class ModLogger {
 
     public static void sendError(PlayerEntity player, String message) {
         player.sendMessage(Text.literal(PREFIX + Formatting.RED + message), false);
+    }
+
+    public static Text getInfo(String message) {
+        return Text.literal(PREFIX + Formatting.GREEN + message);
     }
 }

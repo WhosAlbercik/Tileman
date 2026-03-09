@@ -1,12 +1,13 @@
 package com.whosalbercik.tileman.commands;
 
-import com.mojang.brigadier.arguments.IntegerArgumentType;
+import java.util.UUID;
+
+import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.whosalbercik.tileman.ModLogger;
 import com.whosalbercik.tileman.server.PlayerDataHandler;
 import com.whosalbercik.tileman.tile.OwnedTile;
-import com.whosalbercik.tileman.tile.Tile;
 import com.whosalbercik.tileman.tile.TileHandler;
 import net.minecraft.command.argument.GameProfileArgumentType;
 import net.minecraft.server.command.ServerCommandSource;
@@ -15,10 +16,13 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import java.util.ArrayList;
 
 public class TilesCommand {
-    public static int transfer(CommandContext<ServerCommandSource> source) throws CommandSyntaxException {
-        ServerPlayerEntity sender = source.getSource().getPlayerOrThrow();
-        ServerPlayerEntity receiver = source.getSource().getServer().getPlayerManager().getPlayer(source.getArgument("player", GameProfileArgumentType.GameProfileArgument.class).getNames(source.getSource()).stream().toList().getFirst().getId());
-        int amount = source.getArgument("amountOfTiles", Integer.class);
+    public static int transfer(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        ServerPlayerEntity sender = ctx.getSource().getPlayerOrThrow();
+
+        UUID newOwnerId = ((GameProfile) ctx.getArgument("newOwner", GameProfileArgumentType.GameProfileArgument.class).getNames(ctx.getSource()).toArray()[0]).getId();
+        ServerPlayerEntity receiver = sender.getServer().getPlayerManager().getPlayer(newOwnerId);
+
+        int amount = ctx.getArgument("amountOfTiles", Integer.class);
 
         if (receiver == null) {
             ModLogger.sendError(sender, "Player could not be found!");
@@ -59,7 +63,7 @@ public class TilesCommand {
             return 0;
         }
 
-        ServerPlayerEntity newOwner = ctx.getSource().getServer().getPlayerManager().getPlayer(ctx.getArgument("player", GameProfileArgumentType.GameProfileArgument.class).getNames(ctx.getSource()).stream().toList().getFirst().getId());
+        ServerPlayerEntity newOwner = CommandUtils.getPlayerArg("newOwner", ctx);
 
         if (author.getUuid().equals(newOwner.getUuid())) {
             ModLogger.sendError(author, "You cannot send tiles to yourself!");
@@ -80,5 +84,12 @@ public class TilesCommand {
 
         return 1;
     }
+
+    public static int easyMode(CommandContext<ServerCommandSource> ctx) {
+        TileHandler.toggleEasyMode(ctx.getSource().getServer());
+        ctx.getSource().sendMessage(ModLogger.getInfo(String.format("EasyMode has now been %s", TileHandler.isEasyMode(ctx.getSource().getServer()) ? "enabled" : "disabled")));
+        return 0;
+    }
+
 }
 

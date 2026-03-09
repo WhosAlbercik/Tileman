@@ -1,11 +1,9 @@
 package com.whosalbercik.tileman.tile;
 
-import com.whosalbercik.tileman.ModLogger;
 import com.whosalbercik.tileman.exception.TileAlreadyUnlockedException;
 import com.whosalbercik.tileman.networking.ClearRenderedTilesS2C;
 import com.whosalbercik.tileman.networking.SendSidePanelDataS2C;
 import com.whosalbercik.tileman.networking.SendTilesS2C;
-import com.whosalbercik.tileman.networking.TransferOwnershipC2S;
 import com.whosalbercik.tileman.server.PlayerDataHandler;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.nbt.NbtCompound;
@@ -16,29 +14,37 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.network.SpawnLocating;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.PersistentStateManager;
 import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionTypes;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class TileHandler extends PersistentState {
-    public ArrayList<OwnedTile> tiles = new ArrayList<>();
+    public HashMap<GlobalPos, OwnedTile> tiles = new HashMap<>();
+
+    // if easy mode is on or not
+    public boolean easyMode;
+
+    private static Type<TileHandler> persistantStateType = new Type<>(
+            TileHandler::new,
+            TileHandler::createFromNbt,
+            null
+    );
 
 
     public static Tile getTile(MinecraftServer server, int x, int z, RegistryKey<World> dimension) {
         TileHandler handler = getServerState(server);
 
-        for (OwnedTile tile: handler.tiles) {
-            if (tile.getX() == x && tile.getZ() == z && tile.getDimension().equals(dimension)) {
-                return tile;
-            }
-        }
-        return new Tile(x, z, dimension);
+        OwnedTile tile = handler.tiles.get(new GlobalPos(dimension, new BlockPos(x, 0, z)));
+
+        return tile == null ? new Tile(x, z, dimension) : tile;
     }
 
     public static ArrayList<OwnedTile> getOwnedTiles(ServerPlayerEntity owner) {
@@ -46,7 +52,7 @@ public class TileHandler extends PersistentState {
 
         ArrayList<OwnedTile> owned = new ArrayList<>();
 
-        for (OwnedTile tile: handler.tiles) {
+        for (OwnedTile tile: handler.tiles.values()) {
             if (tile.getOwner().equals(owner.getUuid())) {
                 owned.add(tile);
             }
@@ -55,46 +61,87 @@ public class TileHandler extends PersistentState {
         return owned;
     }
 
-    public static ArrayList<OwnedTile> getOwnedOrFriendedTiles(ServerPlayerEntity owner) {
+    public static HashMap<GlobalPos, OwnedTile> getOwnedOrFriendlyTiles(ServerPlayerEntity owner) {
         TileHandler handler = getServerState(owner.getServer());
 
-        ArrayList<OwnedTile> owned = new ArrayList<>();
+        HashMap<GlobalPos, OwnedTile> owned = new HashMap<>();
 
-        for (OwnedTile tile: handler.tiles) {
+        for (OwnedTile tile: handler.tiles.values()) {
             if (tile.getOwner().equals(owner.getUuid()) || PlayerDataHandler.isFriends(owner, tile.getOwner())) {
-                owned.add(tile);
+                owned.put(tile.getGlobalPos(), tile);
             }
         }
 
         return owned;
+    }
+    public static boolean isSafeSpawnPoint(GlobalPos pos, MinecraftServer server) {
+        HashMap<GlobalPos, OwnedTile> tiles = getServerState(server).tiles;
+        BlockPos bPos = new BlockPos(pos.pos().getX(), 0, pos.pos().getZ());
+
+        return !tiles.containsKey(pos) &&
+                !tiles.containsKey(new GlobalPos(pos.dimension(), bPos.add(1, 0, 0))) &&
+                !tiles.containsKey(new GlobalPos(pos.dimension(), bPos.add(1, 0, 1))) &&
+                !tiles.containsKey(new GlobalPos(pos.dimension(), bPos.add(0, 0, 1))) &&
+                !tiles.containsKey(new GlobalPos(pos.dimension(), bPos.add(-1, 0, 1))) &&
+                !tiles.containsKey(new GlobalPos(pos.dimension(), bPos.add(-1, 0, 0))) &&
+                !tiles.containsKey(new GlobalPos(pos.dimension(), bPos.add(-1, 0, -1))) &&
+                !tiles.containsKey(new GlobalPos(pos.dimension(), bPos.add(0, 0, -1))) &&
+                !tiles.containsKey(new GlobalPos(pos.dimension(), bPos.add(1, 0, -1)));
+    }
+
+    public static BlockPos getSafeSpawnPoint(ServerPlayerEntity p) {
+        BlockPos spawn = null;
+
+        for (int z = p.getChunkPos().z; z >= p.getChunkPos().z; z++) {
+             spawn = SpawnLocating.findServerSpawnPoint(p.getServerWorld(), new ChunkPos(p.getChunkPos().x, z));
+
+             // found safe spawnpoint
+            if (isSafeSpawnPoint(new GlobalPos(p.getWorld().getRegistryKey(), spawn), p.getServer()) && p.teleport(spawn.getX(), spawn.getY(), spawn.getZ(), false)) {
+                return spawn;
+            }
+        }
+
+        return spawn;
     }
 
     public static OwnedTile unlockTile(ServerPlayerEntity player, int x, int z, RegistryKey<World> world) throws TileAlreadyUnlockedException {
         TileHandler handler = getServerState(player.getServer());
         GlobalPos pos = new GlobalPos(world, new BlockPos(x, 0, z));
 
-        for (OwnedTile tile: handler.tiles) {
-            if (tile.equals(pos) && !tile.getOwner().equals(player.getUuid())) {
-                throw new TileAlreadyUnlockedException();
-            }
+        if (handler.tiles.get(pos) != null) {
+            throw new TileAlreadyUnlockedException();
         }
+
         OwnedTile tile = new OwnedTile(pos, player);
 
-        handler.tiles.add(tile);
+        handler.tiles.put(pos, tile);
         handler.markDirty();
 
         player.getServer().getPlayerManager().getPlayerList().forEach((srvpl) -> {
-            ServerPlayNetworking.send(srvpl, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(srvpl), getOwnedTiles(srvpl).size()));
+            ServerPlayNetworking.send(srvpl, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(srvpl), getOwnedOrFriendlyTiles(srvpl).size()));
             ServerPlayNetworking.send(srvpl, new SendTilesS2C(tile));
         });
 
         return tile;
     }
 
+    public static void unlockStartingSquare(ServerPlayerEntity p, BlockPos pos, RegistryKey<World> world) {
+        // unlock starter tiles
+        TileHandler.unlockTile(p, pos.getX(), pos.getZ(), p.getWorld().getRegistryKey());
+        TileHandler.unlockTile(p,pos.getX() + 1, pos.getZ() - 1, p.getWorld().getRegistryKey());
+        TileHandler.unlockTile(p,pos.getX() + 1, pos.getZ(), p.getWorld().getRegistryKey());
+        TileHandler.unlockTile(p,pos.getX() + 1, pos.getZ() + 1, p.getWorld().getRegistryKey());
+        TileHandler.unlockTile(p,pos.getX(), pos.getZ() - 1, p.getWorld().getRegistryKey());
+        TileHandler.unlockTile(p,pos.getX(), pos.getZ() + 1, p.getWorld().getRegistryKey());
+        TileHandler.unlockTile(p,pos.getX() - 1, pos.getZ() - 1, p.getWorld().getRegistryKey());
+        TileHandler.unlockTile(p,pos.getX() - 1, pos.getZ(), p.getWorld().getRegistryKey());
+        TileHandler.unlockTile(p,pos.getX() - 1, pos.getZ() + 1, p.getWorld().getRegistryKey());
+    }
+
     public static void sendTiles(ServerPlayerEntity player) {
         TileHandler handler = getServerState(player.getServer());
 
-        for (OwnedTile tile: handler.tiles) {
+        for (OwnedTile tile: handler.tiles.values()) {
             ServerPlayNetworking.send(player, new SendTilesS2C(tile));
         }
     }
@@ -113,23 +160,19 @@ public class TileHandler extends PersistentState {
 
         server.getPlayerManager().getPlayerList().forEach((srvpl) -> {
             ServerPlayNetworking.send(srvpl, new ClearRenderedTilesS2C());
-            for (OwnedTile tile: handler.tiles) {
+            for (OwnedTile tile: handler.tiles.values()) {
                 ServerPlayNetworking.send(srvpl, new SendTilesS2C(tile));
             }
         });
 
     }
 
-    private static Type<TileHandler> type = new Type<>(
-            TileHandler::new,
-            TileHandler::createFromNbt,
-            null
-    );
+
 
     private static TileHandler getServerState(MinecraftServer server) {
         PersistentStateManager persistentStateManager = server.getWorld(World.OVERWORLD).getPersistentStateManager();
 
-        TileHandler state = persistentStateManager.getOrCreate(type, "tileman.tiles");
+        TileHandler state = persistentStateManager.getOrCreate(persistantStateType, "tileman.tiles");
 
         state.markDirty();
 
@@ -149,15 +192,19 @@ public class TileHandler extends PersistentState {
             RegistryKey<World> dimension = RegistryKey.of(RegistryKeys.WORLD, identifier);
 
 
-            handler.tiles.add(new OwnedTile(tile.getInt("posX"), tile.getInt("posZ"), dimension, tile.getUuid("owner")));
+            handler.tiles.put(
+                    new GlobalPos(dimension, new BlockPos(tile.getInt("posX"), 0, tile.getInt("posZ"))),
+                    new OwnedTile(tile.getInt("posX"), tile.getInt("posZ"), dimension, tile.getUuid("owner")));
         });
+
+        handler.easyMode = tag.getBoolean("easyMode");
         return handler;
     }
 
     @Override
     public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         NbtList tiles = new NbtList();
-        this.tiles.forEach((tile) -> {
+        this.tiles.values().forEach((tile) -> {
             NbtCompound tileNbt = new NbtCompound();
 
             tileNbt.putInt("posX", tile.getX());
@@ -170,34 +217,19 @@ public class TileHandler extends PersistentState {
         });
 
         nbt.put("tiles", tiles);
+        nbt.putBoolean("easyMode", this.easyMode);
         return nbt;
     }
 
-
-    public static ArrayList<OwnedTile> getTilesInNether(MinecraftServer server) {
-        TileHandler handler = getServerState(server);
-
-        ArrayList<OwnedTile> netherTiles = new ArrayList<>();
-
-        for (OwnedTile tile: handler.tiles) {
-            if (tile.getDimension().equals(RegistryKey.ofRegistry(DimensionTypes.THE_NETHER_ID))) {
-                netherTiles.add(tile);
-            }
-        }
-        return netherTiles;
+    // if players should get one tile to unlock after a full minecraft day of not getting any tiles
+    public static boolean isEasyMode(MinecraftServer server) {
+        return getServerState(server).easyMode;
     }
 
-    public static ArrayList<OwnedTile> getTilesInEnd(MinecraftServer server) {
-        TileHandler handler = getServerState(server);
+    public static void toggleEasyMode(MinecraftServer server) {
+        TileHandler handler = TileHandler.getServerState(server);
 
-        ArrayList<OwnedTile> endTiles = new ArrayList<>();
-
-        for (OwnedTile tile: handler.tiles) {
-            if (tile.getDimension().equals(RegistryKey.ofRegistry(DimensionTypes.THE_END_ID))) {
-                endTiles.add(tile);
-            }
-        }
-        return endTiles;
+        handler.easyMode = !handler.easyMode;
+        handler.markDirty();
     }
-
 }

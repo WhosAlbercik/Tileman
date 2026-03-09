@@ -1,6 +1,7 @@
 package com.whosalbercik.tileman.tile;
 
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.World;
 
@@ -38,6 +39,10 @@ public class Tile {
 
     public RegistryKey<World> getDimension() {
         return dimension;
+    }
+
+    public GlobalPos getGlobalPos() {
+        return new GlobalPos(dimension, new BlockPos(x, 0, z));
     }
 
     @Override

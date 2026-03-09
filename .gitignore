@@ -3,6 +3,7 @@
 build/
 out/
 !gradle/wrapper/gradle-wrapper.jar
+*.launch
 
 # IntelliJ IDEA / Android Studio
 .idea/
@@ -34,7 +35,6 @@ crash-reports/
 
 # Minecraft compiled JARs
 *.jar
-*.json
 
 # Fabric API cache
 .cache/

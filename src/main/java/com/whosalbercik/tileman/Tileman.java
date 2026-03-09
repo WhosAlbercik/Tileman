@@ -2,9 +2,9 @@ package com.whosalbercik.tileman;
 
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.whosalbercik.tileman.commands.CommandUtils;
 import com.whosalbercik.tileman.commands.FriendCommand;
 import com.whosalbercik.tileman.commands.TilesCommand;
-import com.whosalbercik.tileman.exception.TileAlreadyUnlockedException;
 import com.whosalbercik.tileman.networking.*;
 
 import com.whosalbercik.tileman.server.MovementHandler;
@@ -25,8 +25,10 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.NetworkSide;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.GlobalPos;
 
 
 public class Tileman implements ModInitializer {
@@ -60,13 +62,29 @@ public class Tileman implements ModInitializer {
 
                     dispatcher.register(literal("tileman")
                                     .executes((source) -> {
-                                        ModLogger.sendInfo(source.getSource().getPlayerOrThrow(), "/tileman friends invite/accept/remove\n/tileman tiles transfer <player> <amount>\n/tileman selectedTiles transferOwnership <player>");
+                                        ModLogger.sendInfo(source.getSource().getPlayerOrThrow(), "/tileman friends invite/accept/remove\n/tileman transfer claimed/available <player> (<amount>)\n");
                                         return 0;
                                     })
-                                    .then(literal("transferOwnership")
-                                            .then(argument("player", GameProfileArgumentType.gameProfile())
-                                                    .executes(TilesCommand::transferOwnership)))
-
+                                    .then(literal("transfer")
+                                                    .then(literal("claimed")
+                                                            .then(argument("newOwner", GameProfileArgumentType.gameProfile())
+                                                                    .executes(TilesCommand::transferOwnership)))
+                                                    .then(literal("available")
+                                                            .then(argument("newOwner", GameProfileArgumentType.gameProfile())
+                                                                    .then(argument("amountOfTiles", IntegerArgumentType.integer(1))
+                                                                            .executes(TilesCommand::transfer)))))
+                                    .then(literal("admin")
+                                            .requires((source) -> source.hasPermissionLevel(2))
+                                            .then(literal("giveTiles")
+                                                    .then(argument("player", GameProfileArgumentType.gameProfile())
+                                                            .then(argument("amount", IntegerArgumentType.integer())
+                                                                    .executes((source) ->
+                                                                    {
+                                                                        PlayerDataHandler.addPlayerAvailableTiles(CommandUtils.getPlayerArg("player", source), source.getArgument("amount", Integer.class));
+                                                                        return 0;
+                                                                    }))))
+                                            .then(literal("easyMode")
+                                                    .executes(TilesCommand::easyMode)))
                                     .then(literal("friends")
                                         .executes(FriendCommand::listFriends)
                                         .then(literal("invite")
@@ -78,11 +96,7 @@ public class Tileman implements ModInitializer {
                                                 .then(argument("player", EntityArgumentType.player())
                                                         .executes(FriendCommand::remove))))
 
-                                    .then(literal("tiles")
-                                        .then(literal("transfer")
-                                            .then(argument("player", GameProfileArgumentType.gameProfile())
-                                                .then(argument("amountOfTiles", IntegerArgumentType.integer(1))
-                                                    .executes(TilesCommand::transfer)))))
+
                             );
                 });
 
@@ -97,35 +111,38 @@ public class Tileman implements ModInitializer {
 
             ServerPlayNetworking.send(p, new ClearRenderedTilesS2C()); // Clear tiles that client has saved
 
-
+            // if player has joined for the first time
             if (TileHandler.getOwnedTiles(p).isEmpty()) {
-                try {
-                    TileHandler.unlockTile(p, p.getBlockX(), p.getBlockZ(), p.getWorld().getRegistryKey());
-                    TileHandler.unlockTile(p, p.getBlockX() + 1, p.getBlockZ() - 1, p.getWorld().getRegistryKey());
-                    TileHandler.unlockTile(p, p.getBlockX() + 1, p.getBlockZ(), p.getWorld().getRegistryKey());
-                    TileHandler.unlockTile(p, p.getBlockX() + 1, p.getBlockZ() + 1, p.getWorld().getRegistryKey());
-                    TileHandler.unlockTile(p, p.getBlockX(), p.getBlockZ() - 1, p.getWorld().getRegistryKey());
-                    TileHandler.unlockTile(p, p.getBlockX(), p.getBlockZ() + 1, p.getWorld().getRegistryKey());
-                    TileHandler.unlockTile(p, p.getBlockX() - 1, p.getBlockZ() - 1, p.getWorld().getRegistryKey());
-                    TileHandler.unlockTile(p, p.getBlockX() - 1, p.getBlockZ(), p.getWorld().getRegistryKey());
-                    TileHandler.unlockTile(p, p.getBlockX() - 1, p.getBlockZ() + 1, p.getWorld().getRegistryKey());
+                BlockPos spawn;
 
-                    p.setSpawnPoint(p.getWorld().getRegistryKey(), p.getBlockPos(), 1f, true, false);
-
-
-                } catch (TileAlreadyUnlockedException e) {
-                    sender.disconnect(Text.of("Your spawn is a tile of someone else. Contact an admin to create a safe place to spawn"));
+                // if can safely spawn normally
+                if (TileHandler.isSafeSpawnPoint(new GlobalPos(p.getWorld().getRegistryKey(), p.getBlockPos()), p.getServer())) {
+                    spawn = p.getBlockPos();
+                } else {
+                    // create safe spawn point artificially
+                    spawn = TileHandler.getSafeSpawnPoint(p);
                 }
+
+                TileHandler.unlockStartingSquare(p, spawn, p.getServerWorld().getRegistryKey());
+                // set spawn point
+                p.setSpawnPoint(p.getWorld().getRegistryKey(), spawn, 1f, true, false);
+
             }
 
             TileHandler.sendTiles(p);
-            ServerPlayNetworking.send(p, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(p), TileHandler.getOwnedOrFriendedTiles(p).size()));
+            ServerPlayNetworking.send(p, new SendSidePanelDataS2C(PlayerDataHandler.getPlayerAvailableTiles(p), TileHandler.getOwnedOrFriendlyTiles(p).size()));
 
         });
 
         ServerTickEvents.START_SERVER_TICK.register((server) -> {
             for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
                 MovementHandler.tickHandler(player);
+
+                // give one extra tile in easy mode
+                if (TileHandler.isEasyMode(server) && PlayerDataHandler.shouldGetEasyModeTile(player)) {
+                    PlayerDataHandler.addPlayerAvailableTiles(player, 1);
+                    ModLogger.sendInfo(player, Formatting.GREEN + "You have not gained a tile for a full day, so you got one extra!");
+                }
             }
         });
 
@@ -133,12 +150,12 @@ public class Tileman implements ModInitializer {
         ServerLivingEntityEvents.AFTER_DEATH.register((livingEntity, source) -> {
             if (livingEntity instanceof PlayerEntity || !(source.getAttacker() instanceof ServerPlayerEntity attacker) || livingEntity.getWorld().isClient()) return;
 
+            PlayerDataHandler.addPlayerAvailableTiles(attacker, 1);
 
-            PlayerDataHandler.addPlayerAvailableTiles((ServerPlayerEntity) attacker, 1);
+            // for easy mode
+            PlayerDataHandler.setLastTimeGainedTile(attacker);
 
             attacker.playSound(SoundEvents.BLOCK_NOTE_BLOCK_COW_BELL.value(), 1f, 1f);
-
-
         });
 
     }
