@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.qeadw.tileman.client.mixin",
+  "compatibilityLevel": "JAVA_18",
+  "client": [
+    "LevelRendererMixin"
+  ],
+
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

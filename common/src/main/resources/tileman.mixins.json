@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.whosalbercik.tileman.client.mixin",
+  "compatibilityLevel": "JAVA_18",
+  "client": [
+    "PauseScreenMixin"
+  ],
+
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

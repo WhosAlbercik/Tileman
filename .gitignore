@@ -34,7 +34,6 @@ crash-reports/
 
 # Minecraft compiled JARs
 *.jar
-*.json
 
 # Fabric API cache
 .cache/
@@ -42,3 +41,9 @@ crash-reports/
 # Temporary files
 *.orig
 *.rej
+
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build

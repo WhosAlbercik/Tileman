@@ -1,11 +1,11 @@
 modLoader="javafml"
-loaderVersion="[47,)"
+loaderVersion="[54,)"
 license="All Rights Reserved"
 issueTrackerURL="https://github.com/WhosAlbercik/Tileman/issues"
 
 [[mods]]
 modId="tileman"
-version="1.0.3.6"
+version="1.1.3.6-UNSTABLE"
 displayName="Tileman"
 logoFile="assets/tileman/icon.png"
 authors="WhosAlbercik"
@@ -19,13 +19,13 @@ Forge port by Avery.
 [[dependencies.tileman]]
 modId="forge"
 mandatory=true
-versionRange="[47,)"
+versionRange="[54,)"
 ordering="NONE"
 side="BOTH"
 
 [[dependencies.tileman]]
 modId="minecraft"
 mandatory=true
-versionRange="[1.20.1,1.21)"
+versionRange="[1.21.4,)"
 ordering="NONE"
 side="BOTH"
