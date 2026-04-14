@@ -1,7 +1,6 @@
 package com.whosalbercik.tileman.client;
 
 
-import com.mojang.authlib.minecraft.client.MinecraftClient;
 import com.whosalbercik.tileman.client.renderer.BorderRenderer;
 import com.whosalbercik.tileman.client.renderer.BorderStyle;
 import com.whosalbercik.tileman.tile.OwnedTile;
@@ -10,7 +9,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.profiling.Profiler;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.level.Level;
 
 import java.util.HashMap;
@@ -123,10 +122,9 @@ public class ClientTileHandler {
      */
     public static void rebuildTile(OwnedTile tile) {
         if (tile == null) return;
+        ProfilerFiller profiler = Minecraft.getInstance().getProfiler();
 
-        Profiler.get().push("rebuildTile");
-
-        Profiler.get().pop();
+        profiler.push("rebuildTile");
 
         BorderStyle tileStyle = new BorderStyle(isFriendly(tile) ? ClientConfig.getFriendlyBorder() : ClientConfig.getEnemyBorder(), tile);
 
@@ -150,7 +148,7 @@ public class ClientTileHandler {
             BorderRenderer.removeTile(tile);
         }
 
-        Profiler.get().pop();
+        profiler.pop();
     }
 
 }

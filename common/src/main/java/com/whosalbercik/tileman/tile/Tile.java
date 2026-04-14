@@ -10,9 +10,9 @@ import net.minecraft.world.level.Level;
  * Holds information regarding a tiles position in the world
  */
 public class Tile {
-    private int x;
-    private int z;
-    private ResourceKey<Level> dimension;
+    private final int x;
+    private final int z;
+    private final ResourceKey<Level> dimension;
 
 
     /**

@@ -9,7 +9,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.util.profiling.Profiler;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.phys.Vec3;
 
 import java.awt.*;
@@ -21,7 +21,7 @@ import java.util.HashMap;
  */
 public class BorderRenderer  {
 
-    private static HashMap<OwnedTile, BorderStyle> renderableTiles = new HashMap<>();
+    private static final HashMap<OwnedTile, BorderStyle> renderableTiles = new HashMap<>();
 
     /**
      * Adds the tile to render its border
@@ -56,13 +56,19 @@ public class BorderRenderer  {
      * @param consumer the consumer
      */
     public static void render(PoseStack poseStack, VertexConsumer consumer) {
-        Profiler.get().push("renderBorders");
+        Minecraft mc = Minecraft.getInstance();
+
+        if (mc.level == null) return;
+
+        ProfilerFiller profiler = mc.getProfiler();
+
+        profiler.push("renderBorders");
 
         if (ClientTileHandler.isDirty()) {
             ClientTileHandler.rebuildAll();
         }
 
-        LocalPlayer p = Minecraft.getInstance().player;
+        LocalPlayer p = mc.player;
 
         poseStack.pushPose();
 
@@ -81,7 +87,7 @@ public class BorderRenderer  {
             if (style.east) addEast(tile, renderableTiles.get(tile), poseStack, consumer);
             if (style.west) addWest(tile, renderableTiles.get(tile), poseStack, consumer);
         }
-        Profiler.get().pop();
+        profiler.pop();
 
         poseStack.popPose();
     }

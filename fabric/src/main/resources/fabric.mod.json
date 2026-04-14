@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "tileman",
-  "version": "1.1.3.6-UNSTABLE",
+  "version": "1.21.1-1.2.3.6-UNSTABLE",
   "name": "Tileman",
   "description": "Tileman mod",
   "authors": ["WhosAlbercik"],
@@ -24,7 +24,7 @@
   ],
   "depends": {
     "fabricloader": ">=0.15.0",
-    "minecraft": "1.21.4",
+    "minecraft": "1.21.1",
     "fabric-api": "*"
   }
 }

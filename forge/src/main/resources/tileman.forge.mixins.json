@@ -4,9 +4,9 @@
   "package": "com.qeadw.tileman.client.mixin",
   "compatibilityLevel": "JAVA_18",
   "client": [
+    "GuiMixin",
     "LevelRendererMixin"
   ],
-
   "injectors": {
     "defaultRequire": 1
   }

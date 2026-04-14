@@ -1,11 +1,9 @@
 package com.whosalbercik.tileman.client.renderer;
 
 import com.whosalbercik.tileman.tile.OwnedTile;
-import com.whosalbercik.tileman.tile.Tile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.util.profiling.Profiler;
 import net.minecraft.world.phys.Vec3;
 
 import java.awt.*;
@@ -53,13 +51,13 @@ public class BorderStyle {
      * @return the Y coordinate on which the tile can be safely rendered
      */
     protected static double calculateY(OwnedTile tile) {
-        Profiler.get().push("calculateY");
         LocalPlayer p = Minecraft.getInstance().player;
+        p.level().getProfiler().push("calculateY");
 
         Vec3 possibleGround = new Vec3(tile.getX(), p.getBlockY() + 1, tile.getZ());
 
         // find close solid block
-        while (!p.level().getBlockState(BlockPos.containing(possibleGround)).isSolidRender()) {
+        while (!p.level().getBlockState(BlockPos.containing(possibleGround)).isSolidRender(p.level(), BlockPos.containing(possibleGround))) {
             possibleGround = possibleGround.subtract(new Vec3(0, 1, 0));
 
             // 5 blocks under player is limit
@@ -69,7 +67,7 @@ public class BorderStyle {
         }
         // render border on the solid block
         possibleGround = possibleGround.add(0, 1, 0);
-        Profiler.get().pop();
+        p.level().getProfiler().pop();
         return possibleGround.y;
 
     }

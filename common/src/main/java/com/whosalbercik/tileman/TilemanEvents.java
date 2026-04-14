@@ -11,8 +11,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.portal.TeleportTransition;
-import net.minecraft.world.phys.Vec3;
 
 /**
  * Events that should run server-side
@@ -35,7 +33,7 @@ public class TilemanEvents {
             } else {
                 // create safe spawn point artificially
                 spawn = TileHandler.getSafeSpawnPoint(p);
-                p.teleport(new TeleportTransition(p.serverLevel(), Vec3.atCenterOf(spawn), Vec3.ZERO, 0f, 0f, TeleportTransition.DO_NOTHING));
+                p.teleportTo(p.serverLevel(), spawn.getX(), spawn.getY(), spawn.getZ(), p.getYRot(), p.getXRot());
             }
 
             TileHandler.unlockStartingSquare(p, spawn, p.serverLevel().dimension());

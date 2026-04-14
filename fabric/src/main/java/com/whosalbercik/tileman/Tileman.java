@@ -1,16 +1,8 @@
 package com.whosalbercik.tileman;
 
 
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.whosalbercik.tileman.commands.AdminCommand;
-import com.whosalbercik.tileman.commands.FriendCommand;
-import com.whosalbercik.tileman.commands.TilesCommand;
-
 import com.whosalbercik.tileman.networking.Packet;
 import com.whosalbercik.tileman.networking.packet.*;
-import com.whosalbercik.tileman.server.MovementHandler;
-import com.whosalbercik.tileman.server.PlayerDataHandler;
-import com.whosalbercik.tileman.server.TileHandler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -19,21 +11,9 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.commands.arguments.EntityArgument;
-import net.minecraft.commands.arguments.GameProfileArgument;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.portal.TeleportTransition;
-import net.minecraft.world.phys.Vec3;
 
 import java.rmi.NotBoundException;
-
-import static net.minecraft.commands.Commands.literal;
-import static net.minecraft.commands.Commands.argument;
 
 
 public class Tileman implements ModInitializer {
@@ -55,9 +35,7 @@ public class Tileman implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(SendSelectedTilesC2S.TYPE, Tileman::handle);
 
         CommandRegistrationCallback.EVENT.register(
-                (dispatcher, registryAccess, environment) -> {
-                  TilemanCommands.registerCommands(dispatcher);
-                });
+                (dispatcher, registryAccess, environment) -> TilemanCommands.registerCommands(dispatcher));
 
         ServerPlayConnectionEvents.JOIN.register((serverPlayNetworkHandler, sender, server) -> {
 

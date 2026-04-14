@@ -7,7 +7,6 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.Vec3;
 
 
@@ -72,7 +71,7 @@ public class MovementHandler {
             p.connection.send(new ClientboundSetEntityMotionPacket(p));
             } else { // if player in different dimension then teleport
             GlobalPos pos = PlayerDataHandler.getLastSafeTile(p);
-            p.teleport(new TeleportTransition(p.getServer().getLevel(pos.dimension()), safePos, Vec3.ZERO, p.getYRot(), p.getXRot(), entity -> {}));
+            p.teleportTo(p.getServer().getLevel(pos.dimension()), safePos.x, safePos.y, safePos.z, p.getYRot(), p.getXRot());
         }
     }
 
