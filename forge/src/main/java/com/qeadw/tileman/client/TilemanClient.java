@@ -35,11 +35,6 @@ public class TilemanClient {
         TilemanClientEvents.tickClient();
     }
 
-    @SubscribeEvent
-    public static void onRenderLevel(RenderPlayerEvent event) {
-        BorderRenderer.render(event.getPoseStack(), event.getMultiBufferSource().getBuffer(RenderType.debugQuads()));
-    }
-
 
     @SubscribeEvent
     public static void onScreenInit(ScreenEvent.Init.Post event) {
